@@ -1,0 +1,163 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<style>
+  body {
+    margin: 0;
+    padding: 0;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    height: 100vh;
+
+  }
+  #game-container {
+    position: relative;
+    width: 100%;
+    max-width: 2000px;
+    height: 0;
+    padding-bottom: 56.65%; /* 2000x1143 aspect ratio */
+    border: 2px solid white;
+    overflow: hidden;
+        background: url("pond.jpg") no-repeat center center;
+    background-size: cover;
+  }
+  .citizen {
+    position: absolute;
+    border-radius: 50%;
+    width: 50px;
+    height: 50px;
+    background-size: cover;
+    pointer-events: none;
+  }
+  #music-control {
+    position: absolute;
+    top: 10px;
+    right: 10px;
+    cursor: pointer;
+  }
+
+  #music-control img {
+    width: 30px;
+    height: 30px;
+  }
+</style>
+</head>
+<body>
+  <div id="game-container"></div>
+  <script>
+    const numbersArray = [
+  "6559", "7087", "7333", "7598", "861", "931", "937", "980", "932", "928",
+  "7703", "7735", "7619", "7480", "7552", "7584", "7505", "7424", "7425", "7414",
+  "7205", "729", "7330", "7240", "7150", "7159", "7095", "67", "6999", "7058",
+  "7073", "7048", "6840", "6969", "6786", "6643", "668", "6697", "6660", "6581",
+  "6611", "6567", "6309", "6454", "6507", "6524", "6500", "6373", "6430", "6370"
+];
+
+  const gameContainer = document.getElementById('game-container');
+
+    function getRandomPosition() {
+      const x = Math.random() * (gameContainer.clientWidth - 50);
+      const y = Math.random() * (gameContainer.clientHeight - 50);
+      return { x, y };
+    }
+
+    function getRandomDirection() {
+      const angle = Math.random() * 360;
+      return angle;
+    }
+
+    async function loadCitizen(tokenId) {
+      const apiUrl = "https://metadata.frens.studio/api/" + tokenId;
+      const citizen = document.createElement('div');
+      citizen.className = 'citizen';
+      const position = getRandomPosition();
+      const direction = getRandomDirection();
+      citizen.style.left = position.x + 'px';
+      citizen.style.top = position.y + 'px';
+
+      try {
+        const response = await fetch(apiUrl);
+        const data = await response.json();
+
+        if (data && data.image) {
+          const ipfsHash = data.image.replace("ipfs://", "");
+          const finalImageUrl = `https://ipfs.io/ipfs/${ipfsHash}`;
+          citizen.style.backgroundImage = `url(${finalImageUrl})`;
+          gameContainer.appendChild(citizen);
+
+          // Move the citizen
+          let currentX = parseFloat(citizen.style.left);
+          let currentY = parseFloat(citizen.style.top);
+          let angle = direction;
+          let speed = Math.random() * 4 + 1;
+
+          function updatePosition() {
+            const newX = currentX + speed * Math.cos(angle);
+            const newY = currentY + speed * Math.sin(angle);
+
+            // Bounce off left and right
+            if (newX < 0 || newX > gameContainer.clientWidth - 50) {
+              angle = 180 - angle;
+            }
+
+            // Bounce off top and bottom
+            if (newY < 0 || newY > gameContainer.clientHeight - 50) {
+              angle = -angle;
+            }
+
+            currentX = newX;
+            currentY = newY;
+            citizen.style.left = currentX + 'px';
+            citizen.style.top = currentY + 'px';
+            requestAnimationFrame(updatePosition);
+          }
+
+          updatePosition();
+        } else {
+          console.log("Image URL not found in response");
+        }
+      } catch (error) {
+        console.error("Error fetching data:", error);
+      }
+    }
+
+    function startGame() {
+      let currentIndex = 0;
+      const intervalId = setInterval(() => {
+        if (currentIndex < numbersArray.length) {
+          loadCitizen(numbersArray[currentIndex]);
+          currentIndex++;
+        } else {
+          clearInterval(intervalId);
+        }
+      }, 3000);
+    }
+
+    startGame();
+  </script>
+  <div id="music-control">
+    <img id="music-toggle" src="play.png" alt="Play Music">
+  </div>
+  <audio id="background-music" loop>
+    <source src="town.mp3" type="audio/mpeg">
+    Your browser does not support the audio element.
+  </audio>
+  <script>
+    const musicToggle = document.getElementById('music-toggle');
+    const backgroundMusic = document.getElementById('background-music');
+
+    musicToggle.addEventListener('click', () => {
+      if (backgroundMusic.paused) {
+        backgroundMusic.play();
+        musicToggle.src = 'pause.png';
+      } else {
+        backgroundMusic.pause();
+        musicToggle.src = 'play.png';
+      }
+    });
+  </script>
+</body>
+</html>
